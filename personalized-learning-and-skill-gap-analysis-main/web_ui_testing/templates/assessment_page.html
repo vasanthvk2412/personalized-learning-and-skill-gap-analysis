@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assessment for {{ course_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        .quiz-option label {
+            display: block;
+            padding: 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .quiz-option input:checked + label {
+            border-color: #4f46e5;
+            background-color: #eef2ff;
+            font-weight: 600;
+            color: #4338ca;
+        }
+        .quiz-option input {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="w-full max-w-3xl bg-white p-8 rounded-2xl shadow-xl">
+        <h1 class="text-3xl font-bold text-gray-800 text-center mb-2">Assessment Time!</h1>
+        <p class="text-center text-gray-600 mb-8">Course: <span class="font-semibold">{{ course_name }}</span></p>
+
+        <form id="quizForm">
+            <div class="space-y-8">
+                {% for question in questions %}
+                <div class="question-block">
+                    <p class="text-lg font-semibold text-gray-700 mb-4">{{ loop.index }}. {{ question.question }}</p>
+                    <div class="space-y-3">
+                        {% for option in question.options %}
+                        <div class="quiz-option">
+                            <input type="radio" name="{{ loop.parent.index0 }}" id="q{{ loop.parent.index0 }}o{{ loop.index0 }}" value="{{ loop.index0 }}" required>
+                            <label for="q{{ loop.parent.index0 }}o{{ loop.index0 }}">{{ option }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="mt-10 text-center">
+                <button type="submit" id="submitBtn" class="w-full md:w-auto px-12 py-4 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-lg text-lg">
+                    Submit Answers
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('quizForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+            const formData = new FormData(event.target);
+            const answers = {};
+            for (let [key, value] of formData.entries()) {
+                answers[key] = value;
+            }
+
+            try {
+                const response = await fetch("{{ url_for('employee.submit_assessment_answers') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ answers: answers }),
+                });
+                const result = await response.json();
+                if (result.success) {
+                    window.location.href = result.redirect_url;
+                } else {
+                    alert('An error occurred while submitting your assessment.');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Answers';
+                }
+            } catch (error) {
+                console.error('Submission error:', error);
+                alert('Could not connect to the server. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Answers';
+            }
+        });
+    </script>
+</body>
+</html>
